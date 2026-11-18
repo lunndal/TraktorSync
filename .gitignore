@@ -1,0 +1,46 @@
+# Traktor files
+*.nml
+/work/
+
+# Logs
+logs
+*.log
+
+# Build output
+dist
+
+# Local overrides
+*.local
+.ignore
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Environment / secrets
+.env
+.env.*
+.keys/
+keys/
+.secrets/
+secrets/
+
+# Temp and scratch
+*.tmp
+*.bak
+~*
+
+# Test / coverage output
+coverage/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sln
+*.sw?
+*.swp
+
+Sync-TraktorLibrary.conf
