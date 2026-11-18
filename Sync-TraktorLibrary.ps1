@@ -210,37 +210,108 @@ function Get-TraktorDate([datetime]$d) { return ('{0}/{1}/{2}' -f $d.Year, $d.Mo
 $confPath = Join-Path (Split-Path -Parent $PSCommandPath) 'Sync-TraktorLibrary.conf'
 if (-not (Test-Path -LiteralPath $confPath)) {
     $template = @'
-# Sync-TraktorLibrary.conf  -  settings for Sync-TraktorLibrary.ps1 (this file is git-ignored)
+# Sync-TraktorLibrary.conf - settings for Sync-TraktorLibrary.ps1 (git-ignored)
 #
-# TO DO: edit the values at the bottom so they match your machine, then run the script again.
+# TO DO: set the required settings below for your machine, then run the script again.
 #
-# Format: one "Name = value" per line. Lines starting with # are comments.
-# No quotes needed; write backslashes as they are. %USERPROFILE% and other %VARIABLES% are expanded.
-# Any parameter of the script can be set here (see: Get-Help .\Sync-TraktorLibrary.ps1 -Full).
-# A parameter given on the command line overrides this file. An empty value counts as not set.
-#
-#   LibraryRoot     Folder holding your "Tracks" and "M3U" subfolders.
-#   TraktorBase     Folder holding the Traktor version folders (e.g. "Traktor 4.5.1"), each with a
-#                   collection.nml. A default Traktor install uses %USERPROFILE%\Documents\Native Instruments
-#   TraktorRoot     Optional. The one version folder to use. Needed only when TraktorBase holds more than
-#                   one Traktor folder with a collection.nml (the script then stops and lists them).
-#   PlaylistFolder  Name of the Traktor playlist folder that gets one playlist per M3U file.
-#                   Created if it does not exist.
-#   WorkDir         Optional. Empty = a temporary folder that is cleaned up automatically.
-#
-# Switches (ReportOnly, Apply, RemoveMissingTracks, RemoveOrphanPlaylists, InstallToTraktor, Force)
-# take true or false and are off unless you set them. Be careful with Apply, InstallToTraktor and
-# Force: set here they apply to every run, so leave them for the command line unless you mean it.
+# One "Name = value" per line. No quotes; %VARIABLES% are expanded.
+# Empty = not set. Switches: true/false (off by default).
+# Every setting is a script parameter; the command line overrides this file.
 
-LibraryRoot    = %USERPROFILE%\Music\Library
-TraktorBase    = %USERPROFILE%\Documents\Native Instruments
-TraktorRoot    =
-PlaylistFolder = Synced
-WorkDir        =
+# --- Required ---
 
-# ReportOnly            = false
-# RemoveMissingTracks   = false
-# RemoveOrphanPlaylists = false
+# Library folder; must contain Tracks and M3U.
+LibraryRoot           = %USERPROFILE%\Music\Library
+
+# Folder with the "Traktor x.y.z" folders. Not needed if TraktorRoot is set.
+TraktorBase           = %USERPROFILE%\Documents\Native Instruments
+
+# Traktor playlist folder for the M3U playlists (created if missing).
+PlaylistFolder        = Synced
+
+# --- Optional ---
+
+# The Traktor folder with collection.nml; needed if several exist.
+TraktorRoot           =
+
+# Working folder; empty = temporary, cleaned up automatically.
+WorkDir               =
+
+# true = only show what would change; write nothing.
+ReportOnly            = false
+
+# true = delete collection entries whose file is gone (loses their cues).
+RemoveMissingTracks   = false
+
+# true = delete playlists in PlaylistFolder that have no M3U.
+RemoveOrphanPlaylists = false
+
+# true = write the merged file without asking. Prefer the command line.
+Apply                 = false
+
+# true = overwrite the real collection.nml (after backup). Prefer the command line.
+InstallToTraktor      = false
+
+# true = skip the InstallToTraktor confirmation. Prefer the command line.
+Force                 = false
+
+# =====================================================================================
+# EXTENDED EXPLANATION
+# =====================================================================================
+#
+# LibraryRoot
+#   Must contain two subfolders. Tracks holds the audio files, e.g.
+#   Tracks\Artist\2001 - Album\1. Title.flac. M3U holds the playlists, one .m3u or
+#   .m3u8 file per Traktor playlist; the file name (without extension) becomes the
+#   playlist name.
+#
+# TraktorBase and TraktorRoot
+#   Traktor keeps its data in one folder per version, e.g. "Traktor 4.5.1", each with
+#   a collection.nml. TraktorRoot is that one folder. TraktorBase is the folder that
+#   holds those version folders (a default Traktor install uses
+#   %USERPROFILE%\Documents\Native Instruments). If TraktorRoot is empty, the script
+#   looks in TraktorBase: one folder with a collection.nml is used automatically; if
+#   there are several, it lists them and stops, and you set TraktorRoot to the right
+#   one (or pass -TraktorRoot).
+#
+# PlaylistFolder
+#   Every M3U becomes a playlist inside this Traktor folder, in the same track order.
+#   An existing playlist with the same name (case ignored) is made identical to its
+#   M3U: tracks are added, removed and reordered. Playlists in other Traktor folders
+#   are never touched.
+#
+# WorkDir
+#   Holds the working copies of the collection and the report. Empty = a new
+#   temporary folder per run. It is deleted after a successful install, after
+#   "nothing to merge" and after you answer no at the prompt. It is kept after
+#   ReportOnly (it has the full-path report), after a merge that was not installed and
+#   after any error. A folder you name here is never deleted.
+#
+# ReportOnly
+#   Prints what would change (new tracks, playlist changes) and stops. Never writes the
+#   merged file and never asks anything.
+#
+# RemoveMissingTracks
+#   Without it, collection entries whose file is gone are only reported. With it they
+#   are deleted, together with their cues, grids and ratings. A renamed or moved file
+#   counts as missing, and its new location is added as a fresh entry without cues.
+#
+# RemoveOrphanPlaylists
+#   Without it, playlists in PlaylistFolder that have no M3U are only reported.
+#
+# Apply, InstallToTraktor, Force
+#   Normal flow: the script writes collection.merged.nml in the work folder after you
+#   confirm (Apply skips that question). The real collection.nml is only touched with
+#   InstallToTraktor: it refuses while Traktor is running or if the live file changed
+#   during the run, saves a verified backup in <TraktorRoot>\Backup\Collection, asks
+#   for confirmation (Force skips that question) and then overwrites collection.nml.
+#   Set in this file, these apply to every run, so prefer passing them on the command
+#   line when you mean it.
+#
+# Command line
+#   Every setting here is a parameter of the script, for example -ReportOnly or
+#   -PlaylistFolder Other. A parameter given on the command line overrides this file.
+#   See: Get-Help .\Sync-TraktorLibrary.ps1 -Full
 '@
     [System.IO.File]::WriteAllText($confPath, ($template -replace "`r?`n", "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "Created $confPath" -ForegroundColor Yellow

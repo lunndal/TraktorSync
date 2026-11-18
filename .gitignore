@@ -1,6 +1,7 @@
 # Traktor files
 *.nml
 /work/
+Sync-TraktorLibrary.conf
 
 # Logs
 logs
@@ -43,4 +44,4 @@ coverage/
 *.sw?
 *.swp
 
-Sync-TraktorLibrary.conf
+
